@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { styled } from "@/lib/stitches.config";
-import { Eye, EyeOff } from "lucide-react"; 
+import { Eye, EyeOff, LogIn } from "lucide-react"; 
 
 // --- DYNAMIC DOT BACKGROUND ---
 const InteractiveGrid = () => {
@@ -34,10 +35,9 @@ const InteractiveGrid = () => {
         const dist = Math.sqrt((mouse.x - dot.x) ** 2 + (mouse.y - dot.y) ** 2);
         const maxDist = 130;
         const ratio = dist < maxDist ? (1 - dist / maxDist) : 0;
-        const size = 1 + ratio * 1.5;
         const opacity = 0.25 + ratio * 0.65;
         ctx.beginPath();
-        ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
+        ctx.arc(dot.x, dot.y, 1 + ratio, 0, Math.PI * 2);
         ctx.fillStyle = dist < maxDist ? `rgba(197, 154, 255, ${opacity})` : `rgba(255, 255, 255, ${opacity})`;
         ctx.fill();
       });
@@ -57,41 +57,96 @@ const InteractiveGrid = () => {
 
 // --- STYLED COMPONENTS ---
 const MainWrapper = styled('div', {
-  height: '100vh',
+  minHeight: '100vh',
   width: '100vw',
-  overflow: 'hidden',
   background: 'radial-gradient(circle at center, #1a102e 0%, #0a0a0c 100%)',
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
   zIndex: 1,
+  '@media (min-width: 851px)': { height: '100vh', overflow: 'hidden' },
+  '@media (max-width: 850px)': { height: 'auto', overflowY: 'auto' }
 });
 
-const Header = styled('header', {
+const SiteHeader = styled('header', {
   width: '100%',
-  padding: '20px 0',
+  height: '60px',
   display: 'flex',
+  alignItems: 'center',
   justifyContent: 'center',
   zIndex: 10,
+  position: 'relative',
+  backgroundColor: 'rgba(26, 16, 46, 0.6)',
   borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-  backdropFilter: 'blur(10px)',
+  backdropFilter: 'blur(15px)',
+});
+
+const LogoWrapper = styled('div', {
+  position: 'absolute',
+  left: '20px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  width: '50px',
+  height: '50px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 });
 
 const HeaderText = styled('span', {
-  color: 'rgba(255, 255, 255, 0.5)',
+  color: 'rgba(255, 255, 255, 0.7)',
   fontSize: '20px',
-  fontWeight: '600',
+  fontWeight: '800',
   letterSpacing: '0.25em',
   textTransform: 'uppercase',
+  textAlign: 'center',
+  padding: '0 70px',
+  '@media (max-width: 480px)': { fontSize: '8px' },
 });
 
-const ContentArea = styled('main', {
-  flex: 1,
+const NavBar = styled('nav', {
+  width: '100%',
+  padding: '10px 40px',
   display: 'flex',
-  flexDirection: 'column',
+  justifyContent: 'flex-end',
+  zIndex: 9,
+  '@media (max-width: 850px)': { justifyContent: 'center', padding: '10px 20px' }
+});
+
+const NavLinks = styled('div', {
+  display: 'flex',
+  gap: '12px',
   alignItems: 'center',
-  justifyContent: 'center',
+});
+
+const NavButton = styled(Link, {
+  textDecoration: 'none',
+  padding: '6px 12px',
+  borderRadius: '12px',
+  color: 'rgba(255, 255, 255, 0.6)',
+  fontSize: '15px',
+  fontWeight: '600',
+  transition: 'color 0.2s',
+  '&:hover': { color: '#c59aff' },
+});
+
+const MainContent = styled('main', {
+  flex: 1,
+  alignItems: 'center',
+  padding: '0 80px',
+  gap: '40px',
+  maxWidth: '1200px',
   zIndex: 2,
+  display: 'flex',
+  justifyContent: 'flex-start', // Anchored left
+  marginLeft: '5%', 
+  '@media (max-width: 850px)': {
+    flexDirection: 'column',
+    marginLeft: '0',
+    padding: '40px 20px',
+    textAlign: 'center',
+    gap: '30px',
+  },
 });
 
 const LoginCard = styled('div', {
@@ -100,18 +155,23 @@ const LoginCard = styled('div', {
   borderRadius: '32px',
   border: '1px solid rgba(255, 255, 255, 0.1)',
   width: '100%',
-  maxWidth: '400px',
+  maxWidth: '450px',
   backdropFilter: 'blur(20px)',
-  '@media (max-width: 768px)': { maxWidth: '320px', padding: '30px' },
+  '@media (max-width: 850px)': { marginInline: 'auto', padding: '30px' },
 });
 
 const Title = styled('h2', {
   color: 'white',
-  fontSize: '2rem',
-  fontWeight: '800',
-  marginBottom: '24px',
-  textAlign: 'center',
+  fontSize: '2.5rem',
+  fontWeight: '900',
+  marginBottom: '10px',
   letterSpacing: '-0.04em',
+});
+
+const SubTitle = styled('p', {
+  color: '#8e8e93',
+  fontSize: '1.1rem',
+  marginBottom: '24px',
 });
 
 const InputGroup = styled('div', {
@@ -124,28 +184,23 @@ const StyledInput = styled('input', {
   backgroundColor: 'rgba(255, 255, 255, 0.05)',
   border: '1px solid rgba(255, 255, 255, 0.1)',
   borderRadius: '16px',
-  padding: '16px 50px 16px 18px', // Right padding for eye icon
+  padding: '16px 18px',
   color: 'white',
   fontSize: '15px',
   outline: 'none',
-  transition: 'all 0.3s',
-  '&:focus': { borderColor: '#c59aff', backgroundColor: 'rgba(255, 255, 255, 0.08)' },
-  '&::placeholder': { color: '#636366' },
+  '&:focus': { borderColor: '#c59aff' },
 });
 
 const EyeButton = styled('button', {
   position: 'absolute',
   right: '18px',
   top: '50%',
-  transform: 'translateY(-50%)', // Perfectly centered vertically
+  transform: 'translateY(-50%)',
   background: 'none',
   border: 'none',
   color: '#636366',
   cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
   zIndex: 10,
-  '&:hover': { color: 'white' },
 });
 
 const ActionButton = styled('button', {
@@ -155,21 +210,38 @@ const ActionButton = styled('button', {
   padding: '16px',
   borderRadius: '16px',
   fontSize: '16px',
-  fontWeight: '700',
+  fontWeight: '800',
   border: 'none',
   cursor: 'pointer',
   marginTop: '10px',
-  transition: 'all 0.3s',
-  '&:hover': { backgroundColor: '#d6b8ff', transform: 'translateY(-2px)', boxShadow: '0 8px 25px rgba(197, 154, 255, 0.4)' },
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  '&:hover': { transform: 'translateY(-2px)', backgroundColor: '#d6b8ff' },
+});
+
+const ImagePanel = styled('div', {
+  width: '100%', 
+  height: '420px',
+  borderRadius: '24px',
+  overflow: 'hidden',
+  position: 'relative',
+  border: '1px solid rgba(197, 154, 255, 0.1)',
+  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+  flex: '1 1 auto',
+  '@media (max-width: 850px)': { height: '250px', maxWidth: '450px' },
 });
 
 const Footer = styled('footer', {
   width: '100%',
   padding: '20px',
   textAlign: 'center',
+  backgroundColor: 'rgba(10, 10, 12, 0.8)',
   borderTop: '1px solid rgba(255, 255, 255, 0.05)',
   color: 'rgba(255, 255, 255, 0.5)',
-  fontSize: '20px',
+  fontSize: '18px',
+  zIndex: 10,
 });
 
 export default function Login() {
@@ -179,60 +251,69 @@ export default function Login() {
   const router = useRouter();
 
   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      alert(error.message);
-    } else {
-      router.push("/dashboard");
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) alert(error.message);
+    else router.push("/dashboard");
   };
 
   return (
     <MainWrapper>
       <InteractiveGrid />
-      <Header>
+      <SiteHeader>
+        <LogoWrapper>
+          <Image src="/images/logo.png" alt="Logo" fill sizes="50px" style={{ objectFit: 'contain' }} priority />
+        </LogoWrapper>
         <HeaderText>Water Hole Task Manager System</HeaderText>
-      </Header>
+      </SiteHeader>
 
-      <ContentArea>
+      <NavBar>
+        <NavLinks>
+          <NavButton href="/">Home</NavButton>
+          <NavButton href="/about">About us</NavButton>
+          <NavButton href="/contact">Contact</NavButton>
+          <NavButton href="/faq">FAQ</NavButton>
+        </NavLinks>
+      </NavBar>
+
+      <MainContent>
         <LoginCard>
           <Title>Welcome Back</Title>
+          <SubTitle>Login to access your personal sanctuary.</SubTitle>
           
           <InputGroup>
-            <StyledInput 
-              type="email" 
-              placeholder="Email address" 
-              onChange={(e) => setEmail(e.target.value)} 
-            />
+            <StyledInput type="email" placeholder="Email address" onChange={(e) => setEmail(e.target.value)} />
           </InputGroup>
 
-          <InputGroup>
-            <StyledInput 
-              type={showPass ? "text" : "password"} 
-              placeholder="Password" 
-              onChange={(e) => setPassword(e.target.value)} 
-            />
+          <InputGroup style={{ marginBottom: '24px' }}>
+            <StyledInput type={showPass ? "text" : "password"} placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
             <EyeButton onClick={() => setShowPass(!showPass)} type="button">
               {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
             </EyeButton>
           </InputGroup>
 
           <ActionButton onClick={handleLogin}>
-            Login
+            <LogIn size={18} /> Login Now
           </ActionButton>
 
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', marginTop: '20px', textAlign: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', marginTop: '20px', textAlign: 'center' }}>
             Don't have an account? <Link href="/signup" style={{ color: '#c59aff', textDecoration: 'none' }}>Join Sanctuary</Link>
           </p>
         </LoginCard>
-      </ContentArea>
+
+        <ImagePanel>
+          <Image 
+            src="/images/pic2.png" 
+            alt="Task Management Visual" 
+            fill 
+            sizes="(max-width: 850px) 100vw, 500px"
+            style={{ objectFit: 'cover' }} 
+            priority 
+          />
+        </ImagePanel>
+      </MainContent>
 
       <Footer>
-        &copy; {new Date().getFullYear()} Water Hole Task Manager System.
+        &copy; 2026 Water Hole Task Manager System. All rights reserved.
       </Footer>
     </MainWrapper>
   );

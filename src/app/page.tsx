@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { styled } from "@/lib/stitches.config";
+import { ArrowRight } from "lucide-react"; 
 
 // --- DYNAMIC DOT BACKGROUND ---
 const InteractiveGrid = () => {
@@ -32,10 +33,9 @@ const InteractiveGrid = () => {
         const dist = Math.sqrt((mouse.x - dot.x) ** 2 + (mouse.y - dot.y) ** 2);
         const maxDist = 130;
         const ratio = dist < maxDist ? (1 - dist / maxDist) : 0;
-        const size = 1 + ratio * 1.5;
         const opacity = 0.25 + ratio * 0.65;
         ctx.beginPath();
-        ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
+        ctx.arc(dot.x, dot.y, 1 + ratio, 0, Math.PI * 2);
         ctx.fillStyle = dist < maxDist ? `rgba(197, 154, 255, ${opacity})` : `rgba(255, 255, 255, ${opacity})`;
         ctx.fill();
       });
@@ -55,133 +55,191 @@ const InteractiveGrid = () => {
 
 // --- STYLED COMPONENTS ---
 const MainWrapper = styled('div', {
-  height: '100vh',
+  minHeight: '100vh',
   width: '100vw',
-  overflow: 'hidden',
   background: 'radial-gradient(circle at center, #1a102e 0%, #0a0a0c 100%)',
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
   zIndex: 1,
+  
+  // ✅ Desktop: Non-scrollable
+  '@media (min-width: 851px)': {
+    height: '100vh',
+    overflow: 'hidden',
+  },
+  
+  // ✅ Mobile: Scalable/Scrollable
+  '@media (max-width: 850px)': {
+    height: 'auto',
+    overflowY: 'auto',
+  }
 });
 
-const Header = styled('header', {
+const SiteHeader = styled('header', {
   width: '100%',
-  padding: '20px 0',
+  height: '60px',
   display: 'flex',
+  alignItems: 'center',
   justifyContent: 'center',
   zIndex: 10,
+  position: 'relative',
+  backgroundColor: 'rgba(26, 16, 46, 0.6)',
   borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-  backdropFilter: 'blur(10px)',
+  backdropFilter: 'blur(15px)',
+});
+
+const LogoWrapper = styled('div', {
+  position: 'absolute',
+  left: '20px',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  width: '50px',
+  height: '50px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 });
 
 const HeaderText = styled('span', {
-  color: 'rgba(255, 255, 255, 0.5)',
+  color: 'rgba(255, 255, 255, 0.7)',
   fontSize: '20px',
-  fontWeight: '600',
+  fontWeight: '800',
   letterSpacing: '0.25em',
   textTransform: 'uppercase',
+  textAlign: 'center',
+  padding: '0 70px',
+  '@media (max-width: 480px)': { fontSize: '8px' },
 });
 
-const ContentArea = styled('main', {
+const NavBar = styled('nav', {
+  width: '100%',
+  padding: '10px 40px',
+  display: 'flex',
+  justifyContent: 'flex-end',
+  zIndex: 9,
+  '@media (max-width: 850px)': {
+    justifyContent: 'center',
+    padding: '10px 20px',
+  }
+});
+
+const NavLinks = styled('div', {
+  display: 'flex',
+  gap: '12px',
+  alignItems: 'center',
+});
+
+const NavButton = styled('button', {
+  background: 'none',
+  border: 'none',
+  padding: '6px 12px',
+  borderRadius: '12px',
+  color: 'rgba(255, 255, 255, 0.6)',
+  fontSize: '15px',
+  fontWeight: '600',
+  cursor: 'pointer',
+  variants: {
+    active: { true: { backgroundColor: 'rgba(197, 154, 255, 0.15)', color: '#c59aff' } },
+  },
+});
+
+const MainContent = styled('main', {
   flex: 1,
+  display: 'grid',
+  gridTemplateColumns: '1.2fr 1fr', 
+  alignItems: 'center',
+  padding: '0 80px',
+  gap: '40px',
+  maxWidth: '1200px',
+  marginInline: 'auto',
+  zIndex: 2,
+  
+  // ✅ Responsive scaling
+  '@media (max-width: 850px)': {
+    gridTemplateColumns: '1fr',
+    padding: '40px 20px',
+    textAlign: 'center',
+    gap: '30px',
+  },
+});
+
+const TextPanel = styled('div', {
   display: 'flex',
   flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '0 20px',
-  textAlign: 'center',
-  zIndex: 2,
-  marginTop: '-10px',
+  gap: '16px',
+  '@media (max-width: 850px)': { alignItems: 'center' },
 });
 
 const Title = styled('h1', {
-  fontSize: '4.5rem',
-  fontWeight: '800',
+  fontSize: '4.0rem', 
+  fontWeight: '900',
   color: 'white',
-  letterSpacing: '-0.05em',
-  marginBottom: '30px',
-  // ✅ MOBILE TITLE SIZE
-  '@media (max-width: 768px)': { 
-    fontSize: '2.5rem',
-    marginBottom: '4px' 
-  },
+  letterSpacing: '-0.06em',
+  lineHeight: '1.1',
+  '@media (max-width: 850px)': { fontSize: '2.5rem' },
 });
 
-const SubTitle = styled('p', {
-  color: '#b1b1b6',
-  fontSize: '1.4rem',
-  lineHeight: '1.4',
-  marginBottom: '30px',
-  maxWidth: '600px',
-  // ✅ MOBILE SUBTITLE SIZE
-  '@media (max-width: 768px)': { 
-    fontSize: '0.95rem',
-    marginBottom: '20px' 
-  },
+const Highlight = styled('span', { color: '#c59aff' });
+
+const SubText = styled('p', {
+  color: '#8e8e93',
+  fontSize: '1.3rem',
+  lineHeight: '1.5',
+  maxWidth: '450px',
 });
 
-const ImageContainer = styled('div', {
+const ActionButtonGroup = styled('div', {
   display: 'flex',
-  gap: '20px',
-  justifyContent: 'center',
-  marginBottom: '30px',
-  // ✅ STACK IMAGES VERTICALLY ON MOBILE
-  '@media (max-width: 768px)': {
-    flexDirection: 'column',
-    gap: '12px',
-    marginBottom: '20px',
-  },
+  gap: '14px',
+  marginTop: '10px',
 });
 
-const StyledImageWrapper = styled('div', {
-  width: '340px',
-  height: '220px',
-  borderRadius: '30px',
-  overflow: 'hidden',
-  border: '2px solid rgba(197, 154, 255, 0.15)',
-  backgroundColor: 'rgba(255,255,255,0.02)',
-  position: 'relative',
-  transition: 'all 0.4s ease',
+const RegisterBtn = styled('button', {
+  backgroundColor: '#c59aff',
+  color: '#0a0a0c',
+  padding: '14px 28px',
+  borderRadius: '16px',
+  fontSize: '15px',
+  fontWeight: '800',
+  border: 'none',
   cursor: 'pointer',
-  
-  // ✅ SHRINK IMAGES FOR MOBILE SCREENS
-  '@media (max-width: 768px)': {
-    width: '260px',
-    height: '140px',
-    borderRadius: '20px',
-  },
-
-  '&:hover': { 
-    transform: 'translateY(-8px) scale(1.02)',
-    borderColor: 'rgba(197, 154, 255, 0.6)',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.8), 0 0 20px rgba(197, 154, 255, 0.2)',
-  },
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
 });
 
-const WelcomeText = styled('div', {
+const LoginBtn = styled('button', {
+  backgroundColor: 'rgba(255, 255, 255, 0.05)',
   color: 'white',
-  fontSize: '1.5rem',
-  fontWeight: '500',
-  '@media (max-width: 768px)': { fontSize: '0.9rem' },
+  padding: '14px 28px',
+  borderRadius: '16px',
+  fontSize: '15px',
+  fontWeight: '700',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  cursor: 'pointer',
 });
 
-const HighlightText = styled('span', {
-  color: '#c59aff',
-  fontWeight: '700',
-  display: 'block',
-  marginTop: '5px',
-  fontSize: '1.4rem',
-  '@media (max-width: 768px)': { fontSize: '1.1rem' },
+const ImagePanel = styled('div', {
+  width: '100%', 
+  height: '420px',
+  borderRadius: '24px',
+  overflow: 'hidden',
+  position: 'relative',
+  border: '1px solid rgba(197, 154, 255, 0.1)',
+  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+  '@media (max-width: 850px)': { height: '250px', maxWidth: '450px' },
 });
 
 const Footer = styled('footer', {
   width: '100%',
   padding: '20px',
   textAlign: 'center',
+  backgroundColor: 'rgba(10, 10, 12, 0.8)',
   borderTop: '1px solid rgba(255, 255, 255, 0.05)',
   color: 'rgba(255, 255, 255, 0.5)',
-  fontSize: '20px',
+  fontSize: '18px',
+  zIndex: 10,
 });
 
 export default function Home() {
@@ -189,52 +247,62 @@ export default function Home() {
     <MainWrapper>
       <InteractiveGrid />
       
-      <Header>
+      <SiteHeader>
+<LogoWrapper>
+  <Image 
+    src="/images/logo.png" 
+    alt="Logo" 
+    fill 
+    sizes="50px" // Since it's fixed at 50px width
+    style={{ objectFit: 'contain' }}
+    priority
+  />
+</LogoWrapper>
         <HeaderText>Water Hole Task Manager System</HeaderText>
-      </Header>
+      </SiteHeader>
 
-      <ContentArea>
-        <Title>Task Management system</Title>
-        <SubTitle>
-          Your Task is are responsiblity and we manage and accomplisht it for you,Just gave us the chance.
-        </SubTitle>
+      <NavBar>
+        <NavLinks>
+          <NavButton active={true}>Home</NavButton>
+          <NavButton>About us</NavButton>
+          <NavButton>Contact</NavButton>
+          <NavButton>FAQ</NavButton>
+        </NavLinks>
+      </NavBar>
 
-        <ImageContainer>
-          <Link href="/login">
-            <StyledImageWrapper>
-               <Image 
-                  src="/images/photo1.png" 
-                  alt="Login" 
-                  fill 
-                  sizes="(max-width: 768px) 260px, 340px"
-                  style={{ objectFit: 'cover' }}
-                  priority
-               />
-            </StyledImageWrapper>
-          </Link>
+      <MainContent>
+        <TextPanel>
+          <Title>Task <Highlight>Management</Highlight> System</Title>
+          <SubText>
+            Unlock deep focus and achieve peak performance. We manage and streamline your work responsibilities.
+          </SubText>
+          
+          <ActionButtonGroup>
+            <Link href="/signup">
+              <RegisterBtn>
+                Join <ArrowRight size={18} />
+              </RegisterBtn>
+            </Link>
+            <Link href="/login">
+              <LoginBtn>Login</LoginBtn>
+            </Link>
+          </ActionButtonGroup>
+        </TextPanel>
 
-          <Link href="/signup">
-            <StyledImageWrapper>
-               <Image 
-                  src="/images/photo2.png" 
-                  alt="Signup" 
-                  fill 
-                  sizes="(max-width: 768px) 260px, 340px"
-                  style={{ objectFit: 'cover' }}
-                  priority
-               />
-            </StyledImageWrapper>
-          </Link>
-        </ImageContainer>
-
-        <WelcomeText>
-          Welcome to Task Management.
-          <HighlightText>Start your journey today.</HighlightText>
-        </WelcomeText>
-      </ContentArea>
+<ImagePanel>
+  <Image 
+    src="/images/pic2.png" 
+    alt="UI Visual" 
+    fill 
+    sizes="(max-width: 850px) 100vw, 500px" // Full width on mobile, 500px on desktop
+    style={{ objectFit: 'cover' }}
+    priority
+  />
+</ImagePanel>
+      </MainContent>
 
       <Footer>
-        &copy; {new Date().getFullYear()} Water Hole Task Manager System.
+        &copy; 2026 Water Hole Task Manager System. All rights reserved.
       </Footer>
     </MainWrapper>
   );
