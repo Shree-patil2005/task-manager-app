@@ -197,3 +197,8 @@ Steps to run the project:-
 
 In terminal type:-
 npm run dev
+
+
+Vercel Link:-
+
+https://task-manager-app-drab-one.vercel.app/
