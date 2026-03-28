@@ -5,13 +5,20 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useTheme } from "next-themes";
 import { styled } from "@/lib/stitches.config";
 import { Eye, EyeOff, LogIn } from "lucide-react"; 
 
 // --- DYNAMIC DOT BACKGROUND ---
 const InteractiveGrid = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
+    if (!mounted) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -38,7 +45,14 @@ const InteractiveGrid = () => {
         const opacity = 0.25 + ratio * 0.65;
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, 1 + ratio, 0, Math.PI * 2);
-        ctx.fillStyle = dist < maxDist ? `rgba(197, 154, 255, ${opacity})` : `rgba(255, 255, 255, ${opacity})`;
+        
+        if (dist < maxDist) {
+          ctx.fillStyle = `rgba(197, 154, 255, ${opacity})`; 
+        } else {
+          ctx.fillStyle = theme === 'dark' 
+            ? `rgba(255, 255, 255, ${opacity})` 
+            : `rgba(0, 0, 0, ${opacity})`;
+        }
         ctx.fill();
       });
       requestAnimationFrame(draw);
@@ -51,7 +65,7 @@ const InteractiveGrid = () => {
       window.removeEventListener("resize", setup);
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, []);
+  }, [mounted, theme]);
   return <canvas ref={canvasRef} style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 }} />;
 };
 
@@ -59,11 +73,12 @@ const InteractiveGrid = () => {
 const MainWrapper = styled('div', {
   minHeight: '100vh',
   width: '100vw',
-  background: 'radial-gradient(circle at center, #1a102e 0%, #0a0a0c 100%)',
+  backgroundColor: '$bgMain', // Token
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
   zIndex: 1,
+  transition: '$standard',
   '@media (min-width: 851px)': { height: '100vh', overflow: 'hidden' },
   '@media (max-width: 850px)': { height: 'auto', overflowY: 'auto' }
 });
@@ -76,8 +91,8 @@ const SiteHeader = styled('header', {
   justifyContent: 'center',
   zIndex: 10,
   position: 'relative',
-  backgroundColor: 'rgba(26, 16, 46, 0.6)',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+  backgroundColor: '$glassBg', 
+  borderBottom: '1px solid $border',
   backdropFilter: 'blur(15px)',
 });
 
@@ -94,7 +109,7 @@ const LogoWrapper = styled('div', {
 });
 
 const HeaderText = styled('span', {
-  color: 'rgba(255, 255, 255, 0.7)',
+  color: '$textSecondary',
   fontSize: '20px',
   fontWeight: '800',
   letterSpacing: '0.25em',
@@ -123,11 +138,11 @@ const NavButton = styled(Link, {
   textDecoration: 'none',
   padding: '6px 12px',
   borderRadius: '12px',
-  color: 'rgba(255, 255, 255, 0.6)',
+  color: '$textSecondary',
   fontSize: '15px',
   fontWeight: '600',
   transition: 'color 0.2s',
-  '&:hover': { color: '#c59aff' },
+  '&:hover': { color: '$brandPrimary' },
 });
 
 const MainContent = styled('main', {
@@ -150,10 +165,10 @@ const MainContent = styled('main', {
 });
 
 const LoginCard = styled('div', {
-  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  backgroundColor: '$cardBg',
   padding: '40px',
   borderRadius: '32px',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+  border: '1px solid $border',
   width: '100%',
   maxWidth: '450px',
   backdropFilter: 'blur(20px)',
@@ -161,7 +176,7 @@ const LoginCard = styled('div', {
 });
 
 const Title = styled('h2', {
-  color: 'white',
+  color: '$textMain',
   fontSize: '2.5rem',
   fontWeight: '900',
   marginBottom: '10px',
@@ -169,7 +184,7 @@ const Title = styled('h2', {
 });
 
 const SubTitle = styled('p', {
-  color: '#8e8e93',
+  color: '$textSecondary',
   fontSize: '1.1rem',
   marginBottom: '24px',
 });
@@ -181,14 +196,15 @@ const InputGroup = styled('div', {
 
 const StyledInput = styled('input', {
   width: '100%',
-  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
+  backgroundColor: '$inputBg',
+  border: '1px solid $border',
   borderRadius: '16px',
   padding: '16px 18px',
-  color: 'white',
+  color: '$textMain',
   fontSize: '15px',
   outline: 'none',
-  '&:focus': { borderColor: '#c59aff' },
+  transition: 'border-color 0.2s ease',
+  '&:focus': { borderColor: '$brandPrimary' },
 });
 
 const EyeButton = styled('button', {
@@ -198,15 +214,15 @@ const EyeButton = styled('button', {
   transform: 'translateY(-50%)',
   background: 'none',
   border: 'none',
-  color: '#636366',
+  color: '$textSecondary',
   cursor: 'pointer',
   zIndex: 10,
 });
 
 const ActionButton = styled('button', {
   width: '100%',
-  backgroundColor: '#c59aff',
-  color: '#0a0a0c',
+  backgroundColor: '$brandPrimary',
+  color: '#0a0a0c', 
   padding: '16px',
   borderRadius: '16px',
   fontSize: '16px',
@@ -218,7 +234,8 @@ const ActionButton = styled('button', {
   alignItems: 'center',
   justifyContent: 'center',
   gap: '8px',
-  '&:hover': { transform: 'translateY(-2px)', backgroundColor: '#d6b8ff' },
+  transition: 'transform 0.2s ease',
+  '&:hover': { transform: 'translateY(-2px)' },
 });
 
 const ImagePanel = styled('div', {
@@ -227,8 +244,8 @@ const ImagePanel = styled('div', {
   borderRadius: '24px',
   overflow: 'hidden',
   position: 'relative',
-  border: '1px solid rgba(197, 154, 255, 0.1)',
-  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
+  border: '1px solid $border',
+  boxShadow: '$card',
   flex: '1 1 auto',
   '@media (max-width: 850px)': { height: '250px', maxWidth: '450px' },
 });
@@ -237,9 +254,9 @@ const Footer = styled('footer', {
   width: '100%',
   padding: '20px',
   textAlign: 'center',
-  backgroundColor: 'rgba(10, 10, 12, 0.8)',
-  borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-  color: 'rgba(255, 255, 255, 0.5)',
+  backgroundColor: '$glassBg',
+  borderTop: '1px solid $border',
+  color: '$textSecondary',
   fontSize: '18px',
   zIndex: 10,
 });
@@ -248,13 +265,18 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => setMounted(true), []);
 
   const handleLogin = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) alert(error.message);
     else router.push("/dashboard");
   };
+
+  if (!mounted) return null;
 
   return (
     <MainWrapper>
@@ -295,8 +317,8 @@ export default function Login() {
             <LogIn size={18} /> Login Now
           </ActionButton>
 
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '14px', marginTop: '20px', textAlign: 'center' }}>
-            Don't have an account? <Link href="/signup" style={{ color: '#c59aff', textDecoration: 'none' }}>Join Sanctuary</Link>
+          <p style={{ color: '$textSecondary', fontSize: '14px', marginTop: '20px', textAlign: 'center' }}>
+            Don't have an account? <Link href="/signup" style={{ color: '$brandPrimary', textDecoration: 'none' }}>Join Sanctuary</Link>
           </p>
         </LoginCard>
 

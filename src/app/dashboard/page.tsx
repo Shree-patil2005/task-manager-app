@@ -4,15 +4,34 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import TaskForm from "@/components/TaskForm";
 import TaskList from "@/components/TaskList";
-import { styled } from "@/lib/stitches.config";
+import { styled } from "@/lib/stitches.config"; 
+import { keyframes } from "@stitches/react"; 
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import type { Task } from "@/types/task";
+import { Plus, X, LogOut, LayoutDashboard } from "lucide-react";
 
-// --- DYNAMIC DOT BACKGROUND COMPONENT ---
+// --- ANIMATIONS ---
+const slideIn = keyframes({
+  'from': { transform: 'translateX(100%)' },
+  'to': { transform: 'translateX(0)' },
+});
+
+const fadeIn = keyframes({
+  'from': { opacity: 0 },
+  'to': { opacity: 1 },
+});
+
+// --- DYNAMIC DOT BACKGROUND COMPONENT (Restored) ---
 const InteractiveGrid = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -38,39 +57,23 @@ const InteractiveGrid = () => {
       dots.forEach((dot) => {
         const dist = Math.sqrt((mouse.x - dot.x) ** 2 + (mouse.y - dot.y) ** 2);
         const maxDist = 130;
-        
-        // "Pop up" effect: scale and brightness increase based on proximity
-        const isNear = dist < maxDist;
-        const ratio = isNear ? (1 - dist / maxDist) : 0;
-        
-        // Base size 1px, pops up to 2.5px
+        const ratio = dist < maxDist ? (1 - dist / maxDist) : 0;
         const size = 1 + ratio * 1.5;
-        // Base opacity 0.25 (brighter), pops up to 0.9
         const opacity = 0.25 + ratio * 0.65;
 
         ctx.beginPath();
         ctx.arc(dot.x, dot.y, size, 0, Math.PI * 2);
-        // Using a slight purple tint for the "glow" when popping up
-        ctx.fillStyle = isNear 
-            ? `rgba(197, 154, 255, ${opacity})` 
-            : `rgba(255, 255, 255, ${opacity})`;
-        ctx.fill();
-
-        // Optional: Add a small glow shadow for the popped dots
-        if (isNear) {
-            ctx.shadowBlur = 10 * ratio;
-            ctx.shadowColor = "rgba(197, 154, 255, 0.5)";
+        if (ratio > 0) {
+          ctx.fillStyle = `rgba(168, 85, 247, ${opacity})`;
         } else {
-            ctx.shadowBlur = 0;
+          ctx.fillStyle = theme === 'dark' ? `rgba(255, 255, 255, 0.08)` : `rgba(0, 0, 0, 0.12)`;
         }
+        ctx.fill();
       });
       requestAnimationFrame(draw);
     };
 
-    const handleMouseMove = (e: MouseEvent) => {
-      mouse = { x: e.clientX, y: e.clientY };
-    };
-
+    const handleMouseMove = (e: MouseEvent) => { mouse = { x: e.clientX, y: e.clientY }; };
     window.addEventListener("resize", setup);
     window.addEventListener("mousemove", handleMouseMove);
     setup();
@@ -80,162 +83,138 @@ const InteractiveGrid = () => {
       window.removeEventListener("resize", setup);
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, []);
+  }, [mounted, theme]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        pointerEvents: "none",
-        zIndex: 0,
-      }}
-    />
-  );
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }} />;
 };
 
-// --- MODERN UI COMPONENTS (Stitches) ---
+// --- MODERN UI COMPONENTS ---
 const MainWrapper = styled('div', {
   minHeight: '100vh',
-  width: '100vw',
-  // ✅ Restored the purple-obsidian gradient
-  background: 'radial-gradient(circle at center, #1a102e 0%, #0a0a0c 100%)',
+  width: '100%',
   display: 'flex',
   flexDirection: 'column',
   position: 'relative',
   zIndex: 1,
+  backgroundColor: '$bgMain',
+  overflowX: 'hidden', // Fixes horizontal scroll
 });
 
+const Header = styled('header', {
+  height: '70px',
+  borderBottom: '1px solid $border',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '0 20px',
+  backgroundColor: '$cardBg',
+  backdropFilter: 'blur(10px)',
+  position: 'sticky',
+  top: 0,
+  zIndex: 100,
+  '@media (min-width: 768px)': { padding: '0 60px' },
+});
 
 const Container = styled('div', {
-  maxWidth: '900px',
+  maxWidth: '1200px',
   margin: '0 auto',
+  width: '100%',
   display: 'flex',
   flexDirection: 'column',
   gap: '32px',
   position: 'relative',
   zIndex: 2,
-});
-
-const Title = styled('h1', {
-  fontSize: '3.5rem',
-  fontWeight: '800',
-  textAlign: 'center',
-  color: 'white',
-  letterSpacing: '-0.06em',
-  marginBottom: '4px',
-  '@media (max-width: 640px)': {
-    fontSize: '2.5rem',
-  },
-});
-
-const SubTitle = styled('p', {
-  textAlign: 'center',
-  color: '#dcdcf0',
-  fontSize: '1.4rem',
-  maxWidth: '500px',
-  margin: '0 auto 10px auto',
-  lineHeight: '1.5',
+  padding: '40px 20px',
+  boxSizing: 'border-box',
 });
 
 const FilterBar = styled('div', {
   display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-  justifyContent: 'center',
-  '@media (min-width: 640px)': {
-    flexDirection: 'row',
-  },
+  flexDirection: 'row',
+  gap: '10px',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  width: '100%',
 });
 
 const StyledSelect = styled('select', {
-  // Fixes visibility of the dropdown menu in most browsers
-  colorScheme: 'dark', 
-  
-  // Your existing styles
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  padding: '12px 40px 12px 20px', // Increased right padding for the arrow
-  borderRadius: '16px',
-  backgroundColor: 'rgba(255, 255, 255, 0.03)',
-  color: '#e2e2e2',
-  fontSize: '20px',
-  fontWeight: '500',
-  backdropFilter: 'blur(10px)',
-  outline: 'none',
-  transition: 'all 0.3s ease',
-  cursor: 'pointer',
-  width: '100%',
-
-  // Ensures the dropdown background is solid dark on desktop/mobile
-  '& option': {
-    backgroundColor: '#121212',
-    color: '#e2e2e2',
-  },
-
-  // Custom arrow to replace the default OS one
-  appearance: 'none',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e2e2e2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 16px center',
-  backgroundSize: '16px',
-
-  '&:focus': {
-    borderColor: '#c59aff',
-    boxShadow: '0 0 0 4px rgba(197, 154, 255, 0.1)',
-  },
-  '&:hover': {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  '@media (min-width: 640px)': {
-    width: 'auto',
-  },
-});
-
-const LogoutButton = styled('button', {
-  backgroundColor: 'transparent',
-  color: '#ff4d4d',
-  fontSize: '14px',
+  padding: '10px 30px 10px 12px', 
+  borderRadius: '12px',
+  fontSize: '13px',
   fontWeight: '600',
-  padding: '10px 20px',
-  borderRadius: '14px',
-  border: '1px solid rgba(255, 77, 77, 0.2)',
-  transition: 'all 0.2s',
+  outline: 'none',
   cursor: 'pointer',
-  marginTop: '20px',
-  '&:hover': {
-    backgroundColor: 'rgba(255, 77, 77, 0.1)',
-    borderColor: '#ff4d4d',
+  appearance: 'none',
+  border: '1px solid $border',
+  backgroundColor: '$inputBg',
+  color: '$textMain',
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='gray'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 10px center',
+  backgroundSize: '12px',
+  flex: '1 1 auto',
+  minWidth: '120px',
+  // --- FIX FOR DARK MODE DROPDOWN MENU ---
+  '& option': {
+    backgroundColor: '$bgMain', // Matches your theme background
+    color: '$textMain',        // Matches your theme text color
+    padding: '10px',
   },
+  '@media (min-width: 640px)': { flex: 'none' },
 });
 
-const LoadMoreBtn = styled('button', {
-  backgroundColor: '#c59aff',
-  color: '#0a0a0c',
-  padding: '16px 32px',
-  borderRadius: '20px',
-  fontSize: '16px',
-  fontWeight: '700',
-  boxShadow: '0 8px 24px rgba(197, 154, 255, 0.2)',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+// --- DRAWER COMPONENTS ---
+const Overlay = styled('div', {
+  position: 'fixed',
+  inset: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  backdropFilter: 'blur(4px)',
+  zIndex: 200,
+  animation: `${fadeIn} 0.3s ease`,
+});
+
+const Drawer = styled('div', {
+  position: 'fixed',
+  top: 0,
+  right: 0,
+  bottom: 0,
+  width: '100%',
+  backgroundColor: '$bgMain',
+  borderLeft: '1px solid $border',
+  zIndex: 201,
+  boxShadow: '-10px 0 30px rgba(0,0,0,0.2)',
+  display: 'flex',
+  flexDirection: 'column',
+  animation: `${slideIn} 0.4s cubic-bezier(0.16, 1, 0.3, 1)`,
+  '@media (min-width: 768px)': { width: '500px' },
+});
+
+const DrawerHeader = styled('div', {
+  padding: '24px',
+  borderBottom: '1px solid $border',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  backgroundColor: '$cardBg',
+});
+
+const FloatingActionButton = styled('button', {
+  position: 'fixed',
+  bottom: '30px',
+  right: '20px',
+  width: '56px',
+  height: '56px',
+  borderRadius: '50%',
+  backgroundColor: '$brandPrimary',
+  color: 'white',
   border: 'none',
   cursor: 'pointer',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 12px 32px rgba(197, 154, 255, 0.3)',
-    backgroundColor: '#d6b8ff',
-  },
-  '&:active': {
-    transform: 'scale(0.98)',
-  },
-  '&:disabled': {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-    transform: 'none',
-  },
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  boxShadow: '0 8px 16px rgba(168, 85, 247, 0.4)',
+  zIndex: 50,
+  '@media (min-width: 768px)': { right: '40px', bottom: '40px', borderRadius: '18px' },
 });
 
 export default function Home() {
@@ -244,139 +223,103 @@ export default function Home() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [offset, setOffset] = useState(0); 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
   useEffect(() => {
     setMounted(true);
-    const getUser = async () => {
+    const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
     };
-    getUser();
+    checkUser();
   }, []);
 
-  const fetchTasks = async (forceRefresh = false) => {
+  const fetchTasks = async () => {
     if (!user) return;
-    setLoading(true);
-    setError("");
-
-    const currentOffset = forceRefresh ? 0 : offset;
-
-    let query = supabase
-      .from("tasks")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: sortOrder === "asc" })
-      .range(currentOffset, currentOffset + 4); 
-
+    let query = supabase.from("tasks").select("*").eq("user_id", user.id).order("created_at", { ascending: sortOrder === "asc" });
+    
     if (statusFilter !== "All") query = query.eq("status", statusFilter);
-    if (timeFilter === "Today") query = query.gte("created_at", new Date().toISOString().split("T")[0]);
-    if (timeFilter === "Last7") {
-      const last7 = new Date();
-      last7.setDate(last7.getDate() - 7);
-      query = query.gte("created_at", last7.toISOString());
+    
+    if (timeFilter === "Today") {
+        query = query.gte("created_at", new Date().toISOString().split("T")[0]);
+    } else if (timeFilter === "Last7") {
+        const last7 = new Date();
+        last7.setDate(last7.getDate() - 7);
+        query = query.gte("created_at", last7.toISOString());
     }
 
-    const { data, error: supabaseError } = await query;
-
-    if (supabaseError) {
-      setError(supabaseError.message);
-    } else {
-      if (currentOffset === 0) {
-        setTasks(data || []);
-      } else {
-        setTasks((prev) => {
-          const newTasks = data || [];
-          const combined = [...prev, ...newTasks];
-          return combined.filter((task, index, self) => index === self.findIndex((t) => t.id === task.id));
-        });
-      }
-    }
-    setLoading(false);
+    const { data } = await query;
+    setTasks(data || []);
   };
 
-  useEffect(() => {
-    if (mounted && user) {
-      setOffset(0);
-      setTasks([]); 
-    }
-  }, [statusFilter, timeFilter, sortOrder, mounted, user]);
-
-  useEffect(() => {
-    if (mounted && user) {
-      fetchTasks();
-    }
-  }, [statusFilter, timeFilter, sortOrder, offset, mounted, user]);
+  useEffect(() => { if (mounted && user) fetchTasks(); }, [statusFilter, timeFilter, sortOrder, mounted, user]);
 
   if (!mounted) return null;
 
   return (
     <MainWrapper>
       <InteractiveGrid />
+      <Header>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <LayoutDashboard size={20} color="var(--colors-brandPrimary)" />
+          <h2 style={{ fontWeight: 800, fontSize: '16px' }}>TASKFLOW</h2>
+        </div>
+        <button onClick={() => supabase.auth.signOut().then(() => router.push("/login"))} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '14px' }}>
+          Sign Out
+        </button>
+      </Header>
+
       <Container>
-        <header>
-          <Title>Task Management System</Title>
-          <SubTitle>We help you to manage your daily tasks with proper scheludeing, editting as well as delete feature.</SubTitle>
-        </header>
-
-        <FilterBar>
-          <StyledSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="All">Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Completed">Completed</option>
-          </StyledSelect>
-
-          <StyledSelect value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
-            <option value="All">Time</option>
-            <option value="Today">Today</option>
-            <option value="Last7">Last 7 Days</option>
-          </StyledSelect>
-
-          <StyledSelect value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-            <option value="desc">Newest First</option>
-            <option value="asc">Oldest First</option>
-          </StyledSelect>
-        </FilterBar>
-
-        <TaskForm fetchTasks={fetchTasks} />
-
-        {loading && offset === 0 && (
-          <p className="text-center text-purple-400 animate-pulse font-medium">Loading....</p>
-        )}
-
-        {error && (
-          <p className="text-center text-red-400 bg-red-900/20 p-4 rounded-2xl border border-red-500/20">{error}</p>
-        )}
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
-          <h2 style={{ color: 'white', fontSize: '2.5rem', fontWeight: '700' }}>Your Tasks</h2>
-          <span style={{ color: '#8e8e93', fontSize: '1.7rem' }}>{tasks.length} Total Active</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px' }}>
+          <div style={{ flex: '1 1 300px' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--colors-textMain)' }}>Project Tasks</h1>
+            <p style={{ color: 'var(--colors-textSecondary)', fontSize: '14px' }}>Manage and monitor your workflow efficiency.</p>
+          </div>
+          
+          <FilterBar>
+            <StyledSelect value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="All">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+            </StyledSelect>
+            <StyledSelect value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
+              <option value="All">All Time</option>
+              <option value="Today">Today</option>
+              <option value="Last7">Last 7 Days</option>
+            </StyledSelect>
+            <StyledSelect value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+              <option value="desc">Newest</option>
+              <option value="asc">Oldest</option>
+            </StyledSelect>
+          </FilterBar>
         </div>
 
         <TaskList tasks={tasks} fetchTasks={fetchTasks} />
-
-        <div className="flex flex-col items-center justify-center pb-20 gap-4">
-          <LoadMoreBtn
-            onClick={() => setOffset((prev) => prev + 5)}
-            disabled={loading || !user}
-          >
-            {loading ? "Syncing..." : "Load More Tasks"}
-          </LoadMoreBtn>
-
-          <LogoutButton onClick={handleLogout}>
-            Sign Out Here
-          </LogoutButton>
-        </div>
       </Container>
+
+      {isDrawerOpen && (
+        <>
+          <Overlay onClick={() => setIsDrawerOpen(false)} />
+          <Drawer>
+            <DrawerHeader>
+              <div>
+                <p style={{ color: 'var(--colors-brandPrimary)', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase' }}>New Entry</p>
+                <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Create Task</h2>
+              </div>
+              <button onClick={() => setIsDrawerOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--colors-textSecondary)' }}><X size={20} /></button>
+            </DrawerHeader>
+            <div style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
+              <TaskForm fetchTasks={fetchTasks} closeDrawer={() => setIsDrawerOpen(false)} />
+            </div>
+          </Drawer>
+        </>
+      )}
+
+      <FloatingActionButton onClick={() => setIsDrawerOpen(true)}>
+        <Plus size={28} strokeWidth={3} />
+      </FloatingActionButton>
     </MainWrapper>
   );
 }

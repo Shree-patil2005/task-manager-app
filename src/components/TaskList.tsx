@@ -1,10 +1,10 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
 import type { Task } from "@/types/task";
 import { supabase } from "@/lib/supabaseClient";
 import { useState } from "react";
 import { styled } from "@/lib/stitches.config";
+import { Edit2, Trash2, CheckCircle, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,66 +15,127 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-// --- MODERN UI COMPONENTS (Stitches) ---
-const Grid = styled('div', {
-  display: 'grid',
-  gap: '24px',
-  gridTemplateColumns: '1fr',
+// --- RESPONSIVE TABLE COMPONENTS ---
+const TableContainer = styled('div', {
+  width: '100%',
+  backgroundColor: '$cardBg',
+  borderRadius: '24px',
+  border: '1px solid $border',
+  overflow: 'hidden',
+  boxShadow: '$card',
+});
+
+const StyledTable = styled('table', {
+  width: '100%',
+  borderCollapse: 'collapse',
+  textAlign: 'left',
+  display: 'block', // Default to block for mobile stack
   '@media (min-width: 768px)': {
-    gridTemplateColumns: '1fr 1fr', 
+    display: 'table', // Switch to real table on desktop
   },
 });
 
-const TaskCard = styled(Card, {
-  padding: '32px !important', // Increased padding for better visual breathability
-  borderRadius: '28px !important',
-  backgroundColor: 'rgba(255, 255, 255, 0.04) !important', // Slightly more visible base
-  backdropFilter: 'blur(12px) !important',
-  border: '1px solid rgba(255, 255, 255, 0.12) !important', // Stronger border contrast
-  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important',
+const THead = styled('thead', {
+  display: 'none', // Hide headers on mobile
+  '@media (min-width: 768px)': {
+    display: 'table-header-group',
+  },
+});
+
+const TBody = styled('tbody', {
+  display: 'block',
+  width: '100%',
+  '@media (min-width: 768px)': {
+    display: 'table-row-group',
+  },
+});
+
+const Th = styled('th', {
+  padding: '16px 24px',
+  color: '$textSecondary',
+  fontWeight: '700',
+  textTransform: 'uppercase',
+  fontSize: '11px',
+  letterSpacing: '0.05em',
+  borderBottom: '1px solid $border',
+  backgroundColor: 'rgba(0,0,0,0.02)',
+});
+
+const Tr = styled('tr', {
   display: 'flex',
   flexDirection: 'column',
-  justifyContent: 'space-between',
-  position: 'relative',
-  overflow: 'hidden',
+  padding: '20px',
+  borderBottom: '1px solid $border',
+  gap: '12px',
+  '@media (min-width: 768px)': {
+    display: 'table-row',
+    padding: '0',
+    flexDirection: 'row',
+  },
   '&:hover': {
-    transform: 'translateY(-6px)',
-    borderColor: 'rgba(197, 154, 255, 0.5) !important',
-    boxShadow: '0 24px 48px rgba(0, 0, 0, 0.5), 0 0 24px rgba(197, 154, 255, 0.15) !important',
-    backgroundColor: 'rgba(255, 255, 255, 0.07) !important',
+    backgroundColor: 'rgba(168, 85, 247, 0.03)',
   },
 });
 
-const StatusIndicator = styled('span', {
-  fontSize: '11px', // Slightly larger for readability
-  fontWeight: '800',
-  textTransform: 'uppercase',
-  letterSpacing: '0.12em',
-  padding: '6px 14px',
-  borderRadius: '12px',
-  width: 'fit-content',
+const Td = styled('td', {
+  padding: '0',
+  color: '$textMain',
+  display: 'block',
+  '@media (min-width: 768px)': {
+    display: 'table-cell',
+    padding: '20px 24px',
+    borderBottom: '1px solid $border',
+    verticalAlign: 'middle',
+  },
+});
+
+const StatusBadge = styled('div', {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '6px 12px',
+  borderRadius: '10px',
+  fontSize: '12px',
+  fontWeight: '700',
   variants: {
     status: {
-      Pending: { 
-        backgroundColor: 'rgba(197, 154, 255, 0.15)', 
-        color: '#d6b8ff', // Lighter purple for better contrast
-        border: '1px solid rgba(197, 154, 255, 0.3)' 
-      },
-      Completed: { 
-        backgroundColor: 'rgba(52, 211, 153, 0.15)', 
-        color: '#6ee7b7', // Lighter green for better contrast
-        border: '1px solid rgba(52, 211, 153, 0.3)' 
-      },
-    },
-  },
+      Pending: { backgroundColor: 'rgba(168, 85, 247, 0.1)', color: '$brandPrimary' },
+      Completed: { backgroundColor: 'rgba(52, 211, 153, 0.1)', color: '#10b981' },
+    }
+  }
 });
 
-const ActionButton = styled(Button, {
-  borderRadius: '14px !important',
-  fontSize: '14px !important',
-  fontWeight: '700 !important',
-  transition: 'all 0.2s !important',
-  height: '44px !important', // Taller buttons for easier clicking
+const ActionButton = styled('button', {
+  background: 'none',
+  border: 'none',
+  padding: '10px',
+  borderRadius: '10px',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  color: '$textSecondary',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '$border',
+  flex: 1, // Full width buttons on mobile
+  '@media (min-width: 768px)': {
+    flex: 'none',
+    backgroundColor: 'transparent',
+  },
+  variants: {
+    variant: {
+      danger: { '&:hover': { color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' } },
+      success: { '&:hover': { color: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' } },
+    }
+  }
+});
+
+const ModalInput = styled(Input, {
+  backgroundColor: '$inputBg !important',
+  border: '1px solid $border !important',
+  color: '$textMain !important',
+  borderRadius: '12px !important',
+  height: '50px !important',
 });
 
 type Props = {
@@ -90,20 +151,14 @@ export default function TaskList({ tasks, fetchTasks }: Props) {
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("tasks").delete().eq("id", id);
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    if (error) return;
     await fetchTasks(true);
   };
 
   const toggleStatus = async (task: Task) => {
     const newStatus = task.status === "Pending" ? "Completed" : "Pending";
     const { error } = await supabase.from("tasks").update({ status: newStatus }).eq("id", task.id);
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    if (error) return;
     await fetchTasks(true);
   };
 
@@ -117,109 +172,88 @@ export default function TaskList({ tasks, fetchTasks }: Props) {
   const handleUpdate = async () => {
     if (!editTask) return;
     const { error } = await supabase.from("tasks").update({ title, description }).eq("id", editTask.id);
-    if (error) {
-      alert(error.message);
-      return;
-    }
+    if (error) return;
     setOpen(false);
     await fetchTasks(true);
   };
 
   return (
-    <div className="space-y-6">
+    <div style={{ marginTop: '20px', width: '100%' }}>
       {tasks.length === 0 ? (
-        <div className="text-center py-20 bg-white/5 rounded-[32px] border border-dashed border-white/10">
-          <p className="text-gray-400 font-bold text-lg">Your Task List is clear. Add some tasks.</p>
+        <div style={{ textAlign: 'center', padding: '60px', border: '2px dashed var(--colors-border)', borderRadius: '24px' }}>
+          <p style={{ color: 'var(--colors-textSecondary)', fontWeight: 600 }}>No tasks found.</p>
         </div>
       ) : (
-        <Grid>
-          {tasks.map((task) => (
-            <TaskCard key={task.id}>
-              <div>
-                <div className="flex justify-between items-start mb-5">
-                  <StatusIndicator status={task.status as any}>
-                    {task.status}
-                  </StatusIndicator>
-                </div>
-                
-                <h3 className={`font-extrabold text-2xl tracking-tight transition-all duration-500 ${
-                  task.status === "Completed" ? "text-gray-500 line-through" : "text-white"
-                }`}>
-                  {task.title}
-                </h3>
+        <TableContainer>
+          <StyledTable>
+            <THead>
+              <tr>
+                <Th>Task Details</Th>
+                <Th>Status</Th>
+                <Th>Created</Th>
+                <Th style={{ textAlign: 'right' }}>Actions</Th>
+              </tr>
+            </THead>
+            <TBody>
+              {tasks.map((task) => (
+                <Tr key={task.id}>
+                  <Td>
+                    <div style={{ 
+                        fontWeight: 800, 
+                        fontSize: '16px', 
+                        color: task.status === 'Completed' ? 'var(--colors-textSecondary)' : 'var(--colors-textMain)',
+                        textDecoration: task.status === 'Completed' ? 'line-through' : 'none' 
+                    }}>
+                      {task.title}
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--colors-textSecondary)', marginTop: '4px' }}>
+                      {task.description || "No description provided"}
+                    </div>
+                  </Td>
+                  
+                  <Td>
+                    <StatusBadge status={task.status as any}>
+                      {task.status === "Completed" ? <CheckCircle size={14} /> : <Clock size={14} />}
+                      {task.status}
+                    </StatusBadge>
+                  </Td>
 
-                <p className={`text-base mt-4 line-clamp-3 leading-relaxed font-medium transition-colors ${
-                    task.status === "Completed" ? "text-gray-600" : "text-gray-200"
-                }`}>
-                  {task.description || "No further details recorded for this objective."}
-                </p>
-              </div>
+                  <Td style={{ color: 'var(--colors-textSecondary)', fontSize: '12px' }}>
+                    <span style={{ display: 'inline-block', marginRight: '4px' }} className="md:hidden">Created:</span>
+                    {new Date(task.created_at).toLocaleDateString()}
+                  </Td>
 
-              <div className="flex items-center gap-3 mt-10 pt-6 border-t border-white/10">
-                <ActionButton 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex-[2] bg-white/10 text-white hover:bg-white/20"
-                  onClick={() => toggleStatus(task)}
-                >
-                  {task.status === "Pending" ? "Complete Task" : "Mark Pending"}
-                </ActionButton>
-
-                <ActionButton 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex-1 text-gray-300 hover:text-white hover:bg-white/5"
-                  onClick={() => handleEdit(task)}
-                >
-                  Edit
-                </ActionButton>
-
-                <ActionButton 
-                  variant="ghost" 
-                  size="sm" 
-                  className="flex-1 text-red-400 hover:bg-red-500/20 hover:text-red-300"
-                  onClick={() => handleDelete(task.id)}
-                >
-                  Delete
-                </ActionButton>
-              </div>
-            </TaskCard>
-          ))}
-        </Grid>
+                  <Td>
+                    <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
+                      <ActionButton variant="success" onClick={() => toggleStatus(task)}>
+                        <CheckCircle size={18} />
+                      </ActionButton>
+                      <ActionButton onClick={() => handleEdit(task)}>
+                        <Edit2 size={18} />
+                      </ActionButton>
+                      <ActionButton variant="danger" onClick={() => handleDelete(task.id)}>
+                        <Trash2 size={18} />
+                      </ActionButton>
+                    </div>
+                  </Td>
+                </Tr>
+              ))}
+            </TBody>
+          </StyledTable>
+        </TableContainer>
       )}
 
+      {/* Edit Modal Logic */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-[#0f0f12] border-white/10 text-white rounded-[32px] sm:max-w-[425px]">
+        <DialogContent className="bg-$bgMain border-$border rounded-[24px] sm:max-w-[425px] p-8 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Edit Task</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Update your task.
-            </DialogDescription>
+            <DialogTitle style={{ color: 'var(--colors-textMain)' }}>Edit Task</DialogTitle>
+            <DialogDescription>Modify task parameters.</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-5 pt-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Title</label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="bg-black/40 border-white/10 rounded-xl h-12 text-white focus:ring-purple-500 text-lg"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1">Description</label>
-              <Input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="bg-black/40 border-white/10 rounded-xl h-12 text-white focus:ring-purple-500 text-lg"
-              />
-            </div>
-
-            <Button 
-              onClick={handleUpdate} 
-              className="w-full h-14 rounded-2xl bg-[#c59aff] hover:bg-[#d6b8ff] text-black font-extrabold transition-all mt-4 text-lg"
-            >
+          <div className="space-y-4 pt-4">
+            <ModalInput value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
+            <ModalInput value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+            <Button onClick={handleUpdate} className="w-full bg-$brandPrimary h-12 rounded-xl font-bold">
               Update Task
             </Button>
           </div>
