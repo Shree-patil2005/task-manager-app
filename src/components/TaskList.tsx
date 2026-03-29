@@ -4,7 +4,7 @@ import type { Task } from "@/types/task";
 import { supabase } from "@/lib/supabaseClient";
 import { useState } from "react";
 import { styled } from "@/lib/stitches.config";
-import { Edit2, Trash2, CheckCircle, Clock } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Clock, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,14 +29,14 @@ const StyledTable = styled('table', {
   width: '100%',
   borderCollapse: 'collapse',
   textAlign: 'left',
-  display: 'block', // Default to block for mobile stack
+  display: 'block', 
   '@media (min-width: 768px)': {
-    display: 'table', // Switch to real table on desktop
+    display: 'table', 
   },
 });
 
 const THead = styled('thead', {
-  display: 'none', // Hide headers on mobile
+  display: 'none', 
   '@media (min-width: 768px)': {
     display: 'table-header-group',
   },
@@ -117,7 +117,7 @@ const ActionButton = styled('button', {
   alignItems: 'center',
   justifyContent: 'center',
   backgroundColor: '$border',
-  flex: 1, // Full width buttons on mobile
+  flex: 1, 
   '@media (min-width: 768px)': {
     flex: 'none',
     backgroundColor: 'transparent',
@@ -138,6 +138,45 @@ const ModalInput = styled(Input, {
   height: '50px !important',
 });
 
+// --- NEW STYLES FOR LOAD MORE & UPDATE ---
+const LoadMoreButton = styled('button', {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '8px',
+  width: '100%',
+  padding: '16px',
+  marginTop: '20px',
+  backgroundColor: 'transparent',
+  border: '1px dashed $border',
+  borderRadius: '16px',
+  color: '$textSecondary',
+  fontWeight: '600',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  '&:hover': {
+    backgroundColor: '$inputBg',
+    color: '$brandPrimary',
+    borderColor: '$brandPrimary',
+  }
+});
+
+const PrimaryModalButton = styled('button', {
+  width: '100%',
+  backgroundColor: '$brandPrimary',
+  color: 'white',
+  padding: '14px',
+  borderRadius: '12px',
+  fontSize: '16px',
+  fontWeight: '700',
+  border: 'none',
+  cursor: 'pointer',
+  marginTop: '20px',
+  transition: 'transform 0.2s',
+  '&:hover': { transform: 'translateY(-2px)' },
+  '&:active': { transform: 'translateY(0)' },
+});
+
 type Props = {
   tasks: Task[];
   fetchTasks: (force?: boolean) => Promise<void>;
@@ -148,6 +187,7 @@ export default function TaskList({ tasks, fetchTasks }: Props) {
   const [editTask, setEditTask] = useState<Task | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [visibleCount, setVisibleCount] = useState(5); // Logic for Load More
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("tasks").delete().eq("id", id);
@@ -177,6 +217,9 @@ export default function TaskList({ tasks, fetchTasks }: Props) {
     await fetchTasks(true);
   };
 
+  // Limit tasks shown based on visibleCount
+  const displayedTasks = tasks.slice(0, visibleCount);
+
   return (
     <div style={{ marginTop: '20px', width: '100%' }}>
       {tasks.length === 0 ? (
@@ -184,78 +227,90 @@ export default function TaskList({ tasks, fetchTasks }: Props) {
           <p style={{ color: 'var(--colors-textSecondary)', fontWeight: 600 }}>No tasks found.</p>
         </div>
       ) : (
-        <TableContainer>
-          <StyledTable>
-            <THead>
-              <tr>
-                <Th>Task Details</Th>
-                <Th>Status</Th>
-                <Th>Created</Th>
-                <Th style={{ textAlign: 'right' }}>Actions</Th>
-              </tr>
-            </THead>
-            <TBody>
-              {tasks.map((task) => (
-                <Tr key={task.id}>
-                  <Td>
-                    <div style={{ 
-                        fontWeight: 800, 
-                        fontSize: '16px', 
-                        color: task.status === 'Completed' ? 'var(--colors-textSecondary)' : 'var(--colors-textMain)',
-                        textDecoration: task.status === 'Completed' ? 'line-through' : 'none' 
-                    }}>
-                      {task.title}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--colors-textSecondary)', marginTop: '4px' }}>
-                      {task.description || "No description provided"}
-                    </div>
-                  </Td>
-                  
-                  <Td>
-                    <StatusBadge status={task.status as any}>
-                      {task.status === "Completed" ? <CheckCircle size={14} /> : <Clock size={14} />}
-                      {task.status}
-                    </StatusBadge>
-                  </Td>
+        <>
+          <TableContainer>
+            <StyledTable>
+              <THead>
+                <tr>
+                  <Th>Task Details</Th>
+                  <Th>Status</Th>
+                  <Th>Created</Th>
+                  <Th style={{ textAlign: 'right' }}>Actions</Th>
+                </tr>
+              </THead>
+              <TBody>
+                {displayedTasks.map((task) => (
+                  <Tr key={task.id}>
+                    <Td>
+                      <div style={{ 
+                          fontWeight: 800, 
+                          fontSize: '16px', 
+                          color: task.status === 'Completed' ? 'var(--colors-textSecondary)' : 'var(--colors-textMain)',
+                          textDecoration: task.status === 'Completed' ? 'line-through' : 'none' 
+                      }}>
+                        {task.title}
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--colors-textSecondary)', marginTop: '4px' }}>
+                        {task.description || "No description provided"}
+                      </div>
+                    </Td>
+                    
+                    <Td>
+                      <StatusBadge status={task.status as any}>
+                        {task.status === "Completed" ? <CheckCircle size={14} /> : <Clock size={14} />}
+                        {task.status}
+                      </StatusBadge>
+                    </Td>
 
-                  <Td style={{ color: 'var(--colors-textSecondary)', fontSize: '12px' }}>
-                    <span style={{ display: 'inline-block', marginRight: '4px' }} className="md:hidden">Created:</span>
-                    {new Date(task.created_at).toLocaleDateString()}
-                  </Td>
+                    <Td style={{ color: 'var(--colors-textSecondary)', fontSize: '12px' }}>
+                      <span style={{ display: 'inline-block', marginRight: '4px' }} className="md:hidden">Created:</span>
+                      {new Date(task.created_at).toLocaleDateString()}
+                    </Td>
 
-                  <Td>
-                    <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
-                      <ActionButton variant="success" onClick={() => toggleStatus(task)}>
-                        <CheckCircle size={18} />
-                      </ActionButton>
-                      <ActionButton onClick={() => handleEdit(task)}>
-                        <Edit2 size={18} />
-                      </ActionButton>
-                      <ActionButton variant="danger" onClick={() => handleDelete(task.id)}>
-                        <Trash2 size={18} />
-                      </ActionButton>
-                    </div>
-                  </Td>
-                </Tr>
-              ))}
-            </TBody>
-          </StyledTable>
-        </TableContainer>
+                    <Td>
+                      <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' }}>
+                        <ActionButton variant="success" onClick={() => toggleStatus(task)}>
+                          <CheckCircle size={18} />
+                        </ActionButton>
+                        <ActionButton onClick={() => handleEdit(task)}>
+                          <Edit2 size={18} />
+                        </ActionButton>
+                        <ActionButton variant="danger" onClick={() => handleDelete(task.id)}>
+                          <Trash2 size={18} />
+                        </ActionButton>
+                      </div>
+                    </Td>
+                  </Tr>
+                ))}
+              </TBody>
+            </StyledTable>
+          </TableContainer>
+
+          {/* Load More Trigger */}
+          {tasks.length > visibleCount && (
+            <LoadMoreButton onClick={() => setVisibleCount(prev => prev + 5)}>
+              <ChevronDown size={18} />
+              Load More Tasks ({tasks.length - visibleCount} remaining)
+            </LoadMoreButton>
+          )}
+        </>
       )}
 
       {/* Edit Modal Logic */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="bg-$bgMain border-$border rounded-[24px] sm:max-w-[425px] p-8 shadow-2xl">
           <DialogHeader>
-            <DialogTitle style={{ color: 'var(--colors-textMain)' }}>Edit Task</DialogTitle>
-            <DialogDescription>Modify task parameters.</DialogDescription>
+            <DialogTitle style={{ color: 'var(--colors-textMain)', fontWeight: 800 }}>Edit Task</DialogTitle>
+            <DialogDescription style={{ color: 'var(--colors-textSecondary)' }}>Modify task parameters.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-4">
             <ModalInput value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" />
             <ModalInput value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
-            <Button onClick={handleUpdate} className="w-full bg-$brandPrimary h-12 rounded-xl font-bold">
+            
+            {/* Using the PrimaryModalButton for high visibility in dark theme */}
+            <PrimaryModalButton onClick={handleUpdate}>
               Update Task
-            </Button>
+            </PrimaryModalButton>
           </div>
         </DialogContent>
       </Dialog>

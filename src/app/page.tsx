@@ -5,7 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { styled } from "@/lib/stitches.config";
-import { ArrowRight, Sun, Moon } from "lucide-react"; 
+import { ArrowRight, Sun, Moon, Info, BookOpen } from "lucide-react"; 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 // --- DYNAMIC DOT BACKGROUND ---
 const InteractiveGrid = () => {
@@ -275,9 +282,46 @@ const Footer = styled('footer', {
   zIndex: 10,
 });
 
+// --- NEW MODAL CONTENT STYLES ---
+const InfoSection = styled('div', {
+  marginTop: '20px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '16px',
+  maxHeight: '60vh', // Limits height to 60% of viewport
+  overflowY: 'auto', // Enables vertical scrolling
+  paddingRight: '8px', // Space for the scrollbar
+  
+  // Custom scrollbar styling for a cleaner look
+  '&::-webkit-scrollbar': {
+    width: '4px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: '$border',
+    borderRadius: '10px',
+  },
+});
+
+const InfoCard = styled('div', {
+  padding: '16px',
+  borderRadius: '16px',
+  backgroundColor: '$inputBg',
+  border: '1px solid $border',
+  display: 'flex',
+  gap: '12px',
+  alignItems: 'flex-start',
+});
+
 export default function Home() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  
+  // Modal states
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [descOpen, setDescOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -288,35 +332,35 @@ export default function Home() {
       <InteractiveGrid />
       
       <SiteHeader>
-<LogoWrapper>
-  <Image 
-    src="/images/logo.png" 
-    alt="Logo" 
-    width={40} // Using fixed width/height often resolves preload issues
-    height={40}
-    style={{ objectFit: 'contain' }}
-    priority={true}
-  />
-</LogoWrapper>
+        <LogoWrapper>
+          <Image 
+            src="/images/logo.png" 
+            alt="Logo" 
+            width={40} 
+            height={40}
+            style={{ objectFit: 'contain' }}
+            priority={true}
+          />
+        </LogoWrapper>
         <HeaderText>Water Hole Task Manager System</HeaderText>
       </SiteHeader>
 
       <NavBar>
         <NavLinks>
           <NavButton active={true}>Home</NavButton>
-          <NavButton>About us</NavButton>
-          <NavButton>Contact</NavButton>
-<NavButton onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-  {theme === 'dark' ? (
-    <>
-      <Sun size={18} /> <span style={{ marginLeft: '8px' }}>Light Mode</span>
-    </>
-  ) : (
-    <>
-      <Moon size={18} /> <span style={{ marginLeft: '8px' }}>Dark Mode</span>
-    </>
-  )}
-</NavButton>
+          <NavButton onClick={() => setAboutOpen(true)}>About us</NavButton>
+          <NavButton onClick={() => setDescOpen(true)}>Discription</NavButton>
+          <NavButton onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            {theme === 'dark' ? (
+              <>
+                <Sun size={18} /> <span style={{ marginLeft: '8px' }}>Light Mode</span>
+              </>
+            ) : (
+              <>
+                <Moon size={18} /> <span style={{ marginLeft: '8px' }}>Dark Mode</span>
+              </>
+            )}
+          </NavButton>
         </NavLinks>
       </NavBar>
 
@@ -354,6 +398,68 @@ export default function Home() {
       <Footer>
         &copy; 2026 Water Hole Task Manager System. All rights reserved.
       </Footer>
+
+      <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
+        <DialogContent className="bg-$bgMain border-$border rounded-[28px] sm:max-w-[550px] w-[95vw] p-8 shadow-2xl backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle style={{ color: 'var(--colors-textMain)', fontSize: '26px', fontWeight: 900, letterSpacing: '-0.02em' }}>
+              About Us
+            </DialogTitle>
+            <DialogDescription style={{ color: 'var(--colors-brandPrimary)', fontWeight: 600 }}>
+              Our Vision and Mission
+            </DialogDescription>
+          </DialogHeader>
+          
+          <InfoSection>
+            {[
+              { title: "A Sanctuary for Focus", text: "Water Hole is a dedicated workspace meticulously designed for both professionals and students who need to reclaim their concentration. We provide a clean, distraction-free environment that strips away digital noise, allowing you to prioritize deep work." },
+              { title: "Empowering Productivity", text: "Our mission is to help users manage their time with precision. By reducing cognitive load through a minimalist interface, we ensure that your mental energy is spent on completing tasks rather than navigating complex menus." },
+              { title: "Tailored for Growth", text: "Whether you are balancing a heavy academic semester or managing complex corporate projects, our platform scales to meet the unique demands of your specific workload and goals." },
+              { title: "A Commitment to Flow", text: "We believe that productivity isn't just about doing more—it's about staying in 'the zone.' Water Hole is built to support a consistent, uninterrupted flow that leads to meaningful progress." }
+            ].map((item, i) => (
+              <InfoCard key={i} style={{ padding: '20px' }}>
+                <Info size={22} style={{ color: 'var(--colors-brandPrimary)', flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ color: 'var(--colors-textMain)', fontSize: '15px', lineHeight: '1.6' }}>
+                  <b style={{ color: 'var(--colors-textMain)', display: 'block', marginBottom: '4px', fontSize: '16px' }}>{item.title}</b>
+                  {item.text}
+                </div>
+              </InfoCard>
+            ))}
+          </InfoSection>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- DESCRIPTION MODAL --- */}
+      <Dialog open={descOpen} onOpenChange={setDescOpen}>
+        <DialogContent className="bg-$bgMain border-$border rounded-[28px] sm:max-w-[550px] w-[95vw] p-8 shadow-2xl backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle style={{ color: 'var(--colors-textMain)', fontSize: '26px', fontWeight: 900, letterSpacing: '-0.02em' }}>
+              System Description
+            </DialogTitle>
+            <DialogDescription style={{ color: 'var(--colors-brandPrimary)', fontWeight: 600 }}>
+              How to use the platform
+            </DialogDescription>
+          </DialogHeader>
+          
+          <InfoSection>
+            {[
+              { title: "Centralized Task Dashboard", text: "Navigate to your personal command center to effortlessly create, organize, and view all your responsibilities in one high-visibility location." },
+              { title: "Precision Deadline Management", text: "Never miss a beat by setting specific deadlines for every entry. This feature allows you to prioritize high-impact work and eliminate the stress of last-minute rushes." },
+              { title: "Real-Time Progress Monitoring", text: "Track the status of every project at a glance. By maintaining a clear view of what is 'In Progress' or 'Pending,' you stay in total control of your schedule." },
+              { title: "Seamless Completion Workflow", text: "Mark items as completed the moment they are finished. This action reinforces a positive feedback loop, maintaining your momentum throughout the day." },
+              { title: "Intuitive User Experience", text: "Designed for speed and ease of use, the interface allows you to update your tasks in seconds, so you can get back to the work that actually matters." }
+            ].map((item, i) => (
+              <InfoCard key={i} style={{ padding: '20px' }}>
+                <BookOpen size={22} style={{ color: 'var(--colors-brandPrimary)', flexShrink: 0, marginTop: '2px' }} />
+                <div style={{ color: 'var(--colors-textMain)', fontSize: '15px', lineHeight: '1.6' }}>
+                  <b style={{ color: 'var(--colors-textMain)', display: 'block', marginBottom: '4px', fontSize: '16px' }}>{item.title}</b>
+                  {item.text}
+                </div>
+              </InfoCard>
+            ))}
+          </InfoSection>
+        </DialogContent>
+      </Dialog>
     </MainWrapper>
   );
 }
